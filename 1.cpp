@@ -4,6 +4,8 @@
 #include<vector>
 #include<iterator>
 #include"timer.h"
+#include<mutex>
+#include<future>
 using namespace std;
 class Data{
 private:
@@ -21,41 +23,43 @@ public:
    }
 
 };
-void MONTE( int N, vector<int> &k, int j){
+//template<typename Iterator>
+void MONTE( Data* data, int begin, int end,int j){
     random_device rd;
     mt19937 RD(rd());
-    for(int i=(N/6*j+1); i<N/6*(j+1); i++){
+    long double count = 0;
+    for(auto i =begin;  i<end; i++){
         uniform_real_distribution<> dis(10.0/6.0*j, 10.0/6.0*(j+1));
         uniform_real_distribution<> dis1(0.0, 10.0);
         if(sqrt(pow(dis(RD),2)+pow(dis1(RD),2))<10.0){
-            k[j]++;
+            count++;
         }
     }
+    data->add(count);
 }
 int main() {
 
-    long long int N=100000000;
+    long long int N=1000000000;
 
-    vector<int> k(6,0);
-    vector <thread> thr;
-    //pair<double,double> a;
+    //vector<int> k(6,0);
+    int n = thread::hardware_concurrency();
+    Data counter;
+    vector <thread> thr(n);
+    vector<std::future<void>> futures(n);
     Timer parallel;
-    for(int j=0; j<5; j++) {thr.emplace_back(thread(MONTE, N, ref(k), j));}
-    random_device rd;
-    mt19937 RD(rd());
-    for(int i=N/6*5+1; i<N+1; i++){
-        uniform_real_distribution<> dis(10.0/6.0*5, 10.0);
-        uniform_real_distribution<> dis1(0.0, 10.0);
-        if(sqrt(pow(dis(RD),2)+pow(dis1(RD),2))<10.0){
-            k[5]++;
-        }
+    for(int j=0; j<n-1; j++) {
+        packaged_task<void(Data* , int, int, int)> task(MONTE);
+        futures[j] = task.get_future();
+        thr[j]=thread(move(task),&counter, N/n*j, N/n*(j+1), j);
     }
+    MONTE(&counter, N/n*(n-1), N, thread::hardware_concurrency()-1);
     for(int j=0; j<5; j++) {thr[j].join();}
-    double sum = accumulate(k.begin(), k.end(), 0);
-    double pi = 4*sum/N;
+    long double pi = 4*(counter.print())/N;
     cout<<"Thread pi calculation: "<<pi<<endl;
     cout<<"Time of thread calculation: "<<parallel.print()<<endl;
-    sum = 0;
+    double sum = 0;
+    random_device rd;
+    mt19937 RD(rd());
     Timer line;
     for(int i=0; i<N; i++){
         uniform_real_distribution<> dis(0.0, 10.0);
