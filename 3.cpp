@@ -2,6 +2,8 @@
 #include <memory>
 #include <mutex>
 #include <queue>
+#include<iostream>
+#include<thread>
 template < typename T, typename Comp >
 class Threadsafe_Priority_Queue
 {
@@ -98,15 +100,18 @@ int main(int argc, char ** argv)
 {
     Threadsafe_Priority_Queue < int, std::greater<int>> queue;
 
-    queue.push(42);
-
-    auto ptr = queue.wait_and_pop();
-
+    queue.push(5);
+    queue.push(1);
+    queue.push(3);
+    std::cout<<"Testing threadsafe priority_queue: "<<std::endl;
     int value;
+    queue.wait_and_pop(value);
+     std::cout<<"Expecting to see 1: "<<value<<std::endl;
 
+
+    queue.push(7);
     bool result = queue.try_pop(value);
-
-    system("pause");
+    std::cout<<"Expecting to see 1 and 3: "<<result<<" "<<value<<std::endl;
 
     return EXIT_SUCCESS;
 }
