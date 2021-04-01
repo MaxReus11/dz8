@@ -5,6 +5,22 @@
 #include<iterator>
 #include"timer.h"
 using namespace std;
+class Data{
+private:
+mutex mutex_;
+long double count_;
+public:
+    Data():count_(0){};
+   void add(long double count){
+        lock_guard<mutex> lock(mutex_);
+        count_+=count;
+    }
+    long double print(){
+        lock_guard<mutex> lock(mutex_);
+        return count_;
+   }
+
+};
 void MONTE( int N, vector<int> &k, int j){
     random_device rd;
     mt19937 RD(rd());
